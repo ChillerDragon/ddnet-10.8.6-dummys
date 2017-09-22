@@ -230,6 +230,9 @@ public:
 	void SetClientVersion(int ClientID, int Version);
 	bool PlayerExists(int ClientID) { return m_apPlayers[ClientID]; };
 
+	int CreateNewDummy(int dummymode);
+	int GetNextClientID();
+
 private:
 
 	bool m_VoteWillPass;
