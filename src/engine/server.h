@@ -178,6 +178,9 @@ public:
 	virtual void ResetNetErrorString(int ClientID) = 0;
 	virtual bool SetTimedOut(int ClientID, int OrigID) = 0;
 	virtual void SetTimeoutProtected(int ClientID) = 0;
+
+	virtual void BotJoin(int BotID) = 0;
+	virtual void BotLeave(int BotID, bool silet = false) = 0;
 };
 
 class IGameServer : public IInterface

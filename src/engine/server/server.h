@@ -112,6 +112,8 @@ public:
 			STATE_READY,
 			STATE_INGAME,
 
+			STATE_BOT,
+
 			SNAPRATE_INIT=0,
 			SNAPRATE_FULL,
 			SNAPRATE_RECOVER,
@@ -165,6 +167,8 @@ public:
 		// DNSBL
 		int m_DnsblState;
 		CHostLookup m_DnsblLookup;
+
+		bool m_IsDummy;
 	};
 
 	CClient m_aClients[MAX_CLIENTS];
@@ -352,6 +356,9 @@ public:
 	void ResetNetErrorString(int ClientID) { m_NetServer.ResetErrorString(ClientID); };
 	bool SetTimedOut(int ClientID, int OrigID);
 	void SetTimeoutProtected(int ClientID) { m_NetServer.SetTimeoutProtected(ClientID); };
+
+	void BotJoin(int BotID);
+	void BotLeave(int BotID, bool silent = false);
 };
 
 #endif

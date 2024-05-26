@@ -26,6 +26,8 @@
 #include "score/sql_score.h"
 #endif
 
+#include <engine/server/server.h>
+
 enum
 {
 	RESET,
@@ -919,7 +921,7 @@ void CGameContext::OnClientEnter(int ClientID)
 		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s", Server()->ClientName(ClientID), m_pController->GetTeamName(m_apPlayers[ClientID]->GetTeam()));
 		SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 
-		SendChatTarget(ClientID, "DDraceNetwork Mod. Version: " GAME_VERSION);
+		SendChatTarget(ClientID, "DDraceNetwork Mod with dummys by ChillerDragon. Version: " GAME_VERSION);
 		SendChatTarget(ClientID, "please visit DDNet.tw or say /info for more info");
 
 		if(g_Config.m_SvWelcome[0]!=0)
@@ -1107,6 +1109,48 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					char pWhisperMsg[256];
 					str_copy(pWhisperMsg, pMsg->m_pMessage + 10, 256);
 					Converse(pPlayer->GetCID(), pWhisperMsg);
+				}
+				else if (str_comp_nocase_num(pMsg->m_pMessage + 1, "dummy ", 6) == 0) 
+				{
+					if (pPlayer->m_Authed == CServer::AUTHED_ADMIN)
+					{
+						char pValue[32];
+						str_copy(pValue, pMsg->m_pMessage + 7, 32);
+						dbg_msg("lol", "%s -> '%s'", pMsg->m_pMessage, pValue);
+						int Value = str_toint(pValue);
+						if (Value > 0)
+						{
+							for (int i = 0; i < Value; i++)
+							{
+								CreateNewDummy(0);
+								SendChatTarget(ClientID, "Bot has been added.");
+							}
+						}
+					}
+					else
+					{
+						SendChatTarget(ClientID, "You don't have enough permission to use this command"); 
+					}
+					return;
+				}
+				else if (!str_comp(pMsg->m_pMessage + 1, "dcdummys"))
+				{
+					if (pPlayer->m_Authed == CServer::AUTHED_ADMIN)
+					{
+						for (int i = 0; i < MAX_CLIENTS; i++)
+						{
+							if (m_apPlayers[i] && m_apPlayers[i]->m_IsDummy)
+							{
+								Server()->BotLeave(i);
+							}
+						}
+						SendChatTarget(ClientID, "All bots have been removed."); 
+					}
+					else
+					{
+						SendChatTarget(ClientID, "You don't have enough permission to use this command"); 
+					}
+					return;
 				}
 				else
 				{
@@ -3252,4 +3296,54 @@ void CGameContext::SetClientVersion(int ClientID, int Version) {
 		return;
 	}
 	m_apPlayers[ClientID]->m_ClientVersion = Version;
+}
+
+
+int CGameContext::CreateNewDummy(int dummymode)
+{
+	int DummyID = GetNextClientID();
+	if (DummyID < 0)
+	{
+		dbg_msg("dummy", "Can't get ClientID. Server is full or something like that.");
+		return -1;
+	}
+
+	if (m_apPlayers[DummyID])
+	{
+		m_apPlayers[DummyID]->OnDisconnect("");
+		delete m_apPlayers[DummyID];
+		m_apPlayers[DummyID] = 0;
+	}
+
+	m_apPlayers[DummyID] = new(DummyID) CPlayer(this, DummyID, TEAM_RED);
+
+	m_apPlayers[DummyID]->m_IsDummy = true;
+	m_apPlayers[DummyID]->m_DummyMode = dummymode;
+	Server()->BotJoin(DummyID);
+
+	str_copy(m_apPlayers[DummyID]->m_TeeInfos.m_SkinName, "greensward", MAX_NAME_LENGTH);
+	m_apPlayers[DummyID]->m_TeeInfos.m_UseCustomColor = true;
+	m_apPlayers[DummyID]->m_TeeInfos.m_ColorFeet = 0;
+	m_apPlayers[DummyID]->m_TeeInfos.m_ColorBody = 0;
+
+	dbg_msg("dummy", "Dummy connected: %d", DummyID);
+
+	OnClientEnter(DummyID);
+
+	return DummyID;
+}
+
+int CGameContext::GetNextClientID()
+{
+	int ClientID = -1;
+	for (int i = 0; i < g_Config.m_SvMaxClients; i++)
+	{
+		if (m_apPlayers[i])
+			continue;
+
+		ClientID = i;
+		break;
+	}
+
+	return ClientID;
 }
